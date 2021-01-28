@@ -3,8 +3,7 @@
 #include <math.h>
 #include <time.h>
 
-//using namespace cimg_library;
-
+//точка n свойств и y
 class Point {
 public:
     Point(){
@@ -24,7 +23,7 @@ public:
     int properties_count;
     double y;
 };
-
+//матрица таблица с числами n*m, которую можно транспонировать. 
 class Matrix{
 public:
     Matrix(int n, int m){
@@ -116,7 +115,7 @@ protected:
     }
 
 };
-
+//квадратная матрица, которую можно транспонировать, брать определитель, получать обратную матрицу. 
 class SquareMatrix :public Matrix{
 public:
     SquareMatrix(int n, int m) : Matrix(n, m){
@@ -130,7 +129,7 @@ public:
     explicit SquareMatrix(Matrix& mat) : Matrix(mat) {
         std::cout << "SquareMatrix constructor\n";
     }
-
+	//находит определитель матрицы
     double get_det(){
         double ans = 0;
         bool columns[m];
@@ -146,7 +145,7 @@ public:
         }
         return ans;
     }
-
+	//находит алгебраическое дополнение для ячейки (a_i;a_j)
     double get_A(int a_i, int a_j){
         double ans = 0;
         bool columns[m];
@@ -164,7 +163,7 @@ public:
         z = ((a_i + a_j) % 2 == 0)? 1 : -1;
         return z * ans;
     }
-
+	//возвращает обратную матрицу
     SquareMatrix get_reverse_matrix(){
         double det = get_det();
         if (det != 0){
@@ -178,7 +177,7 @@ public:
             return (new_mat * (1.0 / det)).get_trans_squarematrix();
         }
     }
-
+	//возвращает транспонированную квадратную матрицу
     SquareMatrix get_trans_squarematrix(){
         SquareMatrix new_mat(m, n);
         for (int i = 0; i < m; i++) {
@@ -200,14 +199,12 @@ public:
     }
 
 private:
+	//находит а(i,j)*(Алг дополнение(i,j)) из таблицы в которой вырезаны столбец a_j и строка a_i
     double _get_A(int i, int j, bool* columns, int a_i, int a_j){
         if (i == a_i) i++;
         if (i == n - 1){
             return values[i][j];
-        }/*
-        if (i > n - 1){
-            return 1;
-        }//*/
+        }
         columns[j] = false;
         double ans = 0;
         int z = 1;
@@ -285,6 +282,9 @@ Matrix operator * (Matrix &a, Matrix &b){
     }
 }
 
+//из множества пар значений ((1, x1, x2, ..., xn); y), полученных таким способом:
+// y = a0*1 + a1*x1 + a2*x2 + ... + an*xn + шум ,
+// находит коэфициенты a0,a1,...,an.
 int linearReg(Matrix &x, Matrix &y){
     Matrix m = x.get_trans_matrix();
     //std::cout << "xt :\n";
@@ -320,23 +320,36 @@ int linearReg(Matrix &x, Matrix &y){
     }
 }
 
+//создает пары значений ((1, x1, x2, ..., xn); y), полученных таким способом:
+// y = a0*1 + a1*x1 + a2*x2 + ... + an*xn + шум , где шум это sin( sum(x1,..,xn) ) * 5,
+// a1,..,an - это случайные числа от 0 до 1, a0 - случайное число от 0 до 10
 Point* createTestPoints(int n, int m){
     srand( time(nullptr) );
     Point* ans = new Point[n];
+	double a[m + 1];
+	for (int i = 1; i < m + 1; i++){
+		a[i] = (rand() % 100) / 100.0;
+		std::cout << a[i] << " ";
+	}
+	a[0] = rand() % 100 + (rand() % 100) / 100.0;
+	std::cout << a[0] << "\n";
     for (int i = 0; i < n; i++){
         double x[m + 1];
         double s = 0;
+		double sx = 0;
         for (int j = 1; j < m + 1; j++) {
             x[j] = rand() % 100 + (rand() % 100) / 100.0;
             s += x[j];
+			sx += x[j] * a[j];
         }
         x[0] = 1;
-        double y = sin(s) * 5 + s * 0.3 + 5;
+		sx += x[0] * a[0];
+        double y = sin(s) * 5 + sx + 5;
         ans[i] = Point(x, m + 1, y);
     }
     return ans;
 }
-
+//сохраняет координаты точек в файл
 void wirtePoints(Point* points, int n){
     std::ofstream f;
     f.open("../files/f_1.txt");
