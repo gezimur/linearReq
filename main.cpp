@@ -1,5 +1,7 @@
 #include <iostream>
 #include <fstream>
+#include <math.h>
+#include <time.h>
 
 //using namespace cimg_library;
 
@@ -8,26 +10,19 @@ public:
     Point(){
         properties_count = 0;
     }
-    Point(int* x, int count){
+    Point(const double* x, int count, double y){
         std::cout << "point constructor\n";
         this->properties_count = count;
-        this->properties = new int[count];
+        this->properties = new double[count];
         for (int i = 0; i < count; i++){
             properties[i] = x[i];
         }
+        this->y = y;
     }
-    int get_properties(int i){
-        return properties[i];
-    }
-    int get_size(){
-        return properties_count;
-    }
-    int* get_all(){
-        return properties;
-    }
-private:
-    int* properties;
+
+    double* properties;
     int properties_count;
+    double y;
 };
 
 class Matrix{
@@ -40,22 +35,22 @@ public:
             values[i] = new double[m];
         }
     }
-    Matrix(int rows_count, Point* points){
-        std::cout << "matrix constructor\n";
-        n = rows_count;
-        m = 0;
-        for (int i = 0; i < n; i++){
-            m = max(m, points[i].get_size());
-        }
+    Matrix(Point* points, int points_count, bool is_x_matrix){
+        n = points_count;
         values = new double*[n];
-        for (int i = 0; i < n; i++){
-            values[i] = new double[m];
-            for (int j = 0; j < m; j++){
-                if (j < points[i].get_size()){
-                    values[i][j] = points[i].get_properties(j);
-                }else{
-                    values[i][j] = 0;
+        if (is_x_matrix){
+            m = points[0].properties_count;
+            for (int i = 0; i < n; i++){
+                values[i] = new double[m];
+                for (int j = 0; j < m; j++){
+                    values[i][j] = points[i].properties[j];
                 }
+            }
+        }else{
+            m = 1;
+            for (int i = 0; i < n; i++){
+                values[i] = new double[m];
+                values[i][0] = points[i].y;
             }
         }
     }
@@ -106,7 +101,7 @@ public:
             for (int j = 0; j < m; j++){
                 std::cout.width(6);
                 std::cout.precision(3);
-                std::cout << values[i][j];
+                std::cout << values[i][j] << " ";
             }
             std::cout << "\n";
         }
@@ -127,12 +122,15 @@ public:
     SquareMatrix(int n, int m) : Matrix(n, m){
         std::cout << "SquareMatrix constructor\n";
     }
-    SquareMatrix(int rows_count, Point *points) : Matrix(rows_count, points) {
+
+    SquareMatrix(Point *points, int n, bool is_x_matrix) : Matrix(points, n, is_x_matrix) {
         std::cout << "SquareMatrix constructor\n";
     }
+
     explicit SquareMatrix(Matrix& mat) : Matrix(mat) {
         std::cout << "SquareMatrix constructor\n";
     }
+
     double get_det(){
         double ans = 0;
         bool columns[m];
@@ -148,6 +146,7 @@ public:
         }
         return ans;
     }
+
     double get_A(int a_i, int a_j){
         double ans = 0;
         bool columns[m];
@@ -165,6 +164,7 @@ public:
         z = ((a_i + a_j) % 2 == 0)? 1 : -1;
         return z * ans;
     }
+
     SquareMatrix get_reverse_matrix(){
         double det = get_det();
         if (det != 0){
@@ -178,6 +178,7 @@ public:
             return (new_mat * (1.0 / det)).get_trans_squarematrix();
         }
     }
+
     SquareMatrix get_trans_squarematrix(){
         SquareMatrix new_mat(m, n);
         for (int i = 0; i < m; i++) {
@@ -187,6 +188,7 @@ public:
         }
         return new_mat;
     }
+
     SquareMatrix operator * (double b){
         SquareMatrix new_mat(*this);
         for (int i = 0; i < n; i++){
@@ -196,6 +198,7 @@ public:
         }
         return new_mat;
     }
+
 private:
     double _get_A(int i, int j, bool* columns, int a_i, int a_j){
         if (i == a_i) i++;
@@ -222,7 +225,7 @@ private:
     }
 };
 
-Matrix operator * (Matrix a, int b){
+Matrix operator * (Matrix &a, int &b){
     Matrix new_mat(a);
     for (int i = 0; i < a.get_size_n(); i++){
         for (int j = 0; j < a.get_size_m(); j++){
@@ -232,7 +235,7 @@ Matrix operator * (Matrix a, int b){
     return new_mat;
 }
 
-Matrix operator * (Matrix a, double b){
+Matrix operator * (Matrix &a, double &b){
     Matrix new_mat(a);
     for (int i = 0; i < a.get_size_n(); i++){
         for (int j = 0; j < a.get_size_m(); j++){
@@ -242,7 +245,7 @@ Matrix operator * (Matrix a, double b){
     return new_mat;
 }
 
-SquareMatrix operator * (SquareMatrix a, int b){
+SquareMatrix operator * (SquareMatrix &a, int &b){
     SquareMatrix new_mat(a);
     for (int i = 0; i < a.get_size_n(); i++){
         for (int j = 0; j < a.get_size_m(); j++){
@@ -252,7 +255,7 @@ SquareMatrix operator * (SquareMatrix a, int b){
     return new_mat;
 }
 
-SquareMatrix operator * (SquareMatrix a, double b){
+SquareMatrix operator * (SquareMatrix &a, double &b){
     SquareMatrix new_mat(a);
     for (int i = 0; i < a.get_size_n(); i++){
         for (int j = 0; j < a.get_size_m(); j++){
@@ -262,7 +265,7 @@ SquareMatrix operator * (SquareMatrix a, double b){
     return new_mat;
 }
 
-Matrix operator * (Matrix a, Matrix b){
+Matrix operator * (Matrix &a, Matrix &b){
     if (a.get_size_m() == b.get_size_n()){
         int new_mat_n = a.get_size_n(), new_mat_m = b.get_size_m();
         SquareMatrix new_mat(new_mat_n, new_mat_m);
@@ -276,77 +279,91 @@ Matrix operator * (Matrix a, Matrix b){
             }
         }
         return new_mat;
+    }else{
+        std::cout << "a.get_size_m() != b.get_size_n() \n";
+        return Matrix(0,0);
     }
 }
-Matrix linearReg(Matrix x, Matrix y){
-    Matrix m_1 = (x.get_trans_matrix() * x);
-    m_1.show();
-    SquareMatrix m_2 = SquareMatrix(m_1);
 
-    std::cout << "det = " << m_2.get_det() << "\n";
-    if (m_2.get_det() != 0){
-        Matrix m_3 = m_2.get_reverse_matrix() * x.get_trans_matrix();
-        m_3.show();
-        m_3 = m_3 * y.get_trans_matrix();
-        m_3.show();
-        return  m_3;
+int linearReg(Matrix &x, Matrix &y){
+    Matrix m = x.get_trans_matrix();
+    //std::cout << "xt :\n";
+    //m.show();
+
+    m = (m * x);
+    //std::cout << "xt * x :\n";
+    //m.show();
+
+    SquareMatrix sm = SquareMatrix(m).get_reverse_matrix();
+    //std::cout << "(xt * x)^(-1) :\n";
+    //sm.show();
+
+    if (sm.get_det() != 0){
+        //std::cout << "det(xt * x) =" << sm.get_det() << "\n";
+        m = x.get_trans_matrix();
+
+        Matrix m_add = sm * m;
+        //std::cout << "(xt * x)^(-1) * xt :\n";
+        //m_add.show();
+
+        m = y;
+        //std::cout << "y :\n";
+        //m.show();
+
+        m_add = m_add * m;
+        //std::cout << "O :\n";
+        m_add.show();
+        return 0;
+    }else{
+        std::cout << "det = 0\n";
+        return 1;
     }
-    return m_2;
 }
-/*
-Point** readMyPoints(FILE* f){
-    std::ifstream file;
-    file.open("../files/f_1.txt");
-    if (file.is_open()){
-        Point** ans =
-        int n, m;
-        file >> n >> m;
-        for (int i = 0; i < n; i++){
-            int p_properties[m];
-            for (in j = 0; j < m; j++){
-                file >> p_properties[j];
-            }
-            Point p(p_properties, m);
-        }
-    }
-    file.close()
-    }
-}//*/
-/*
-void writeToFPoints(){
-    std::ofstream file;
-    file.open("../files/f_1.txt");
-    if (file.is_open()){
-        int points_count = 10, properties_count = 2;
-        int v_x[] = {10, 5, 12, 25, 1, 18, 11, 7, 19, 15};
-        file << points_count << " " << properties_count << "\n";
-        for (int i = 0; i < points_count - 1; i++) {
-            file << i << " " << v_x[i] << ",";
-        }
-        file << (points_count - 1) << " " << v_x[points_count - 1] << "\n";
 
-        int v_y[] = {15, 12, 18, 30, 3, 20, 14, 10, 20, 13};
-        for (int i = 0; i < points_count - 1; i++) {
-            file << i << " " << v_y[i] << ",";
+Point* createTestPoints(int n, int m){
+    srand( time(nullptr) );
+    Point* ans = new Point[n];
+    for (int i = 0; i < n; i++){
+        double x[m + 1];
+        double s = 0;
+        for (int j = 1; j < m + 1; j++) {
+            x[j] = rand() % 100 + (rand() % 100) / 100.0;
+            s += x[j];
         }
-        file << (points_count - 1) << " " << v_y[points_count - 1];
+        x[0] = 1;
+        double y = sin(s) * 5 + s * 0.3 + 5;
+        ans[i] = Point(x, m + 1, y);
     }
-    file.close();
-}//*/
+    return ans;
+}
+
+void wirtePoints(Point* points, int n){
+    std::ofstream f;
+    f.open("../files/f_1.txt");
+    for (int i = 0; i  < n; i++){
+        for (int j = 1; j < points[i].properties_count; j++){
+            f << points[i].properties[j] << " ";
+        }
+        f << points[i].y << "\n";
+    }
+    f.close();
+}
 
 int main() {
     std::cout << "Hello, World!" << std::endl;
-    int v_x[] = {10, 5, 12, 25, 1, 18, 11, 7, 19, 15},
-        v_y[] = {15, 12, 18, 30, 3, 20, 14, 10, 20, 13};
-    Point p_y(v_y, 10);
-    Point px[] = {Point(v_x, 10)};
-    Point py[] = {p_y};
-    Matrix x(1, px), y(1, py);
-    x.show();
-    y.show();
-    //linearReg(x, y);
 
-    writeToFPoints();
+    //linearReg(x, y);
+    int n = 10, m = 1;
+    Point* points = createTestPoints(n, m);
+    Matrix x(points, n, true), y(points, n, false);
+
+    //std::cout << "x :\n";
+    //x.show();
+    //std::cout << "y :\n";
+    //y.show();
+    linearReg(x, y);
+
+    wirtePoints(points, n);
 
     return 0;
 }
